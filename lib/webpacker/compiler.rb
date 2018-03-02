@@ -3,12 +3,12 @@ require "digest/sha1"
 
 class Webpacker::Compiler
   # Additional paths that test compiler needs to watch
-  # Webpacker::Compiler.watched_paths << 'bower_components'
-  mattr_accessor(:watched_paths) { [] }
+  # Webpacker::Compiler.watched_paths << 'bower_components'
+  cattr_accessor(:watched_paths) { [] }
 
   # Additional environment variables that the compiler is being run with
   # Webpacker::Compiler.env['FRONTEND_API_KEY'] = 'your_secret_key'
-  mattr_accessor(:env) { {} }
+  cattr_accessor(:env) { {} }
 
   delegate :config, :logger, to: :@webpacker
 
@@ -65,14 +65,21 @@ class Webpacker::Compiler
     end
 
     def default_watched_paths
-      ["#{config.source_path}/**/*", "yarn.lock", "package.json", "config/webpack/**/*"].freeze
+      [
+        *config.resolved_paths_globbed,
+        "#{config.source_path.relative_path_from(Rails.root)}/**/*",
+        "yarn.lock", "package.json",
+        "config/webpack/**/*"
+      ].freeze
     end
 
     def compilation_digest_path
-      config.cache_path.join(".last-compilation-digest")
+      config.cache_path.join(".last-compilation-digest-#{Webpacker.env}")
     end
 
     def webpack_env
-      env.merge("NODE_ENV" => @webpacker.env, "ASSET_HOST" => ActionController::Base.helpers.compute_asset_host)
+      env.merge("NODE_ENV"                    => @webpacker.env,
+                "WEBPACKER_ASSET_HOST"        => ActionController::Base.helpers.compute_asset_host,
+                "WEBPACKER_RELATIVE_URL_ROOT" => ActionController::Base.relative_url_root)
     end
 end

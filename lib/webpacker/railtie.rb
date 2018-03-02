@@ -4,6 +4,47 @@ require "webpacker/helper"
 require "webpacker/dev_server_proxy"
 
 class Webpacker::Engine < ::Rails::Engine
+  # Allows Webpacker config values to be set via Rails env config files
+  config.webpacker = ActiveSupport::OrderedOptions.new
+  config.webpacker.check_yarn_integrity = false
+
+  # ================================
+  # Check Yarn Integrity Initializer
+  # ================================
+  #
+  # development (on by default):
+  #
+  #    to turn off:
+  #     - edit config/environments/development.rb
+  #     - add `config.webpacker.check_yarn_integrity = false`
+  #
+  # production (off by default):
+  #
+  #    to turn on:
+  #     - edit config/environments/production.rb
+  #     - add `config.webpacker.check_yarn_integrity = false`
+  initializer "webpacker.yarn_check" do |app|
+    if File.exist?("yarn.lock") && app.config.webpacker.check_yarn_integrity
+      output = `yarn check --integrity 2>&1`
+
+      unless $?.success?
+        $stderr.puts "\n\n"
+        $stderr.puts "========================================"
+        $stderr.puts "  Your Yarn packages are out of date!"
+        $stderr.puts "  Please run `yarn install` to update."
+        $stderr.puts "========================================"
+        $stderr.puts "\n\n"
+        $stderr.puts "To disable this check, please add `config.webpacker.check_yarn_integrity = false`"
+        $stderr.puts "to your Rails development config file (config/environments/development.rb)."
+        $stderr.puts "\n\n"
+        $stderr.puts output
+        $stderr.puts "\n\n"
+
+        exit(1)
+      end
+    end
+  end
+
   initializer "webpacker.proxy" do |app|
     if Rails.env.development?
       app.middleware.insert_before 0,
@@ -12,7 +53,7 @@ class Webpacker::Engine < ::Rails::Engine
     end
   end
 
-  initializer "webpacker.helper" do |app|
+  initializer "webpacker.helper" do
     ActiveSupport.on_load :action_controller do
       ActionController::Base.helper Webpacker::Helper
     end
@@ -23,7 +64,7 @@ class Webpacker::Engine < ::Rails::Engine
   end
 
   initializer "webpacker.logger" do
-    config.after_initialize do |app|
+    config.after_initialize do
       if ::Rails.logger.respond_to?(:tagged)
         Webpacker.logger = ::Rails.logger
       else

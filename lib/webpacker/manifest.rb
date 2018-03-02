@@ -23,6 +23,10 @@ class Webpacker::Manifest
     find name
   end
 
+  def lookup!(name)
+    lookup(name) || handle_missing_entry(name)
+  end
+
   private
     def compiling?
       config.compile? && !dev_server.running?
@@ -33,7 +37,7 @@ class Webpacker::Manifest
     end
 
     def find(name)
-      data[name.to_s] || handle_missing_entry(name)
+      data[name.to_s].presence
     end
 
     def handle_missing_entry(name)
@@ -41,13 +45,13 @@ class Webpacker::Manifest
     end
 
     def missing_file_from_manifest_error(bundle_name)
-      msg = <<-MSG
+      <<-MSG
 Webpacker can't find #{bundle_name} in #{config.public_manifest_path}. Possible causes:
 1. You want to set webpacker.yml value of compile to true for your environment
    unless you are using the `webpack -w` or the webpack-dev-server.
-2. Webpack has not yet re-run to reflect updates.
+2. webpack has not yet re-run to reflect updates.
 3. You have misconfigured Webpacker's config/webpacker.yml file.
-4. Your Webpack configuration is not creating a manifest.
+4. Your webpack configuration is not creating a manifest.
 Your manifest contains:
 #{JSON.pretty_generate(@data)}
       MSG

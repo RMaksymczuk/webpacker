@@ -1,7 +1,7 @@
 class Webpacker::DevServer
   # Configure dev server connection timeout (in seconds), default: 0.01
-  # Webpacker.dev_server.connect_timeout = 1
-  mattr_accessor(:connect_timeout) { 0.01 }
+  # Webpacker.dev_server.connect_timeout = 1
+  cattr_accessor(:connect_timeout) { 0.01 }
 
   delegate :config, to: :@webpacker
 
@@ -10,9 +10,13 @@ class Webpacker::DevServer
   end
 
   def running?
-    Socket.tcp(host, port, connect_timeout: connect_timeout).close
-    true
-  rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, NoMethodError
+    if config.dev_server.present?
+      Socket.tcp(host, port, connect_timeout: connect_timeout).close
+      true
+    else
+      false
+    end
+  rescue
     false
   end
 

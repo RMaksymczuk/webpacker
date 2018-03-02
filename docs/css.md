@@ -1,10 +1,10 @@
-# CSS, SASS and SCSS
+# CSS, Sass and SCSS
 
 
-Webpacker supports importing css, sass and scss files directly into your javascript files.
+Webpacker supports importing CSS, Sass and SCSS files directly into your JavaScript files.
 
 
-## Import styles into your JS app
+## Import global styles into your JS app
 
 ```sass
 // app/javascript/hello_react/styles/hello-react.sass
@@ -30,6 +30,36 @@ const Hello = props => (
 )
 ```
 
+## Import scoped styles into your JS app
+
+Stylesheets end with `.module.*` is treated as [CSS Modules](https://github.com/css-modules/css-modules).
+
+```sass
+// app/javascript/hello_react/styles/hello-react.module.sass
+
+.helloReact
+  padding: 20px
+  font-size: 12px
+```
+
+```js
+// React component example
+// app/javascripts/packs/hello_react.jsx
+
+import React from 'react'
+import helloIcon from '../hello_react/images/icon.png'
+import styles from '../hello_react/styles/hello-react'
+
+const Hello = props => (
+  <div className={styles.helloReact}>
+    <img src={helloIcon} alt="hello-icon" />
+    <p>Hello {props.name}!</p>
+  </div>
+)
+```
+
+**Note:** Declared class is referenced as object property in JavaScript.
+
 
 ## Link styles from your Rails views
 
@@ -45,7 +75,7 @@ a separate `[pack_name].css` bundle so that in your view you can use the
 
 ## Add bootstrap
 
-You can use yarn to add bootstrap or any other modules available on npm:
+You can use Yarn to add bootstrap or any other modules available on npm:
 
 ```bash
 yarn add bootstrap
@@ -77,6 +107,40 @@ file in your app root with standard plugins.
 
 ```yml
 plugins:
-  postcss-smart-import: {}
+  postcss-import: {}
   postcss-cssnext: {}
+```
+
+## Using CSS with [vue-loader](https://github.com/vuejs/vue-loader)
+
+Vue templates require loading the stylesheet in your application in
+order for CSS to work.  This is in addition to loading the JavaScript
+file for the entry point.  Loading the stylesheet will also load the
+CSS for any nested components.
+
+```erb
+<%= stylesheet_pack_tag 'hello_vue' %>
+<%= javascript_pack_tag 'hello_vue' %>
+```
+
+## Resolve url loader
+
+Since `Sass/libsass` does not provide url rewriting, all linked assets must be relative to the output. Add the missing url rewriting using the resolve-url-loader. Place it directly after the sass-loader in the loader chain.
+
+
+```bash
+yarn add resolve-url-loader
+```
+
+```js
+// webpack/environment.js
+const { environment } = require('@rails/webpacker')
+
+// resolve-url-loader must be used before sass-loader
+environment.loaders.get('sass').use.splice(-1, 0, {
+  loader: 'resolve-url-loader',
+  options: {
+    attempts: 1
+  }
+});
 ```

@@ -1,15 +1,39 @@
 module Webpacker::Helper
-  # Computes the full path for a given webpacker asset.
-  # Return relative path using manifest.json and passes it to asset_url helper
+  # Computes the relative path for a given Webpacker asset.
+  # Return relative path using manifest.json and passes it to asset_path helper
   # This will use asset_path internally, so most of their behaviors will be the same.
   #
   # Example:
   #
+  #   # In development mode with hot module replacement:
+  #   <%= asset_pack_path 'calendar.css' %>  # => nil
+  #
+  #   # In production mode:
   #   <%= asset_pack_path 'calendar.css' %> # => "/packs/calendar-1016838bab065ae1e122.css"
   def asset_pack_path(name, **options)
-    asset_path(Webpacker.manifest.lookup(name), **options)
+    unless stylesheet?(name) && Webpacker.dev_server.running? && Webpacker.dev_server.hot_module_replacing?
+      asset_path(Webpacker.manifest.lookup!(name), **options)
+    end
   end
-  # Creates a script tag that references the named pack file, as compiled by Webpack per the entries list
+
+  # Computes the absolute path for a given Webpacker asset.
+  # Return absolute path using manifest.json and passes it to asset_url helper
+  # This will use asset_url internally, so most of their behaviors will be the same.
+  #
+  # Example:
+  #
+  #   # In development mode with hot module replacement:
+  #   <%= asset_pack_url 'calendar.css' %> # => nil
+  #
+  #   # In production mode:
+  #   <%= asset_pack_url 'calendar.css' %> # => "http://example.com/packs/calendar-1016838bab065ae1e122.css"
+  def asset_pack_url(name, **options)
+    unless Webpacker.dev_server.running? && Webpacker.dev_server.hot_module_replacing?
+      asset_url(Webpacker.manifest.lookup!(name), **options)
+    end
+  end
+
+  # Creates a script tag that references the named pack file, as compiled by webpack per the entries list
   # in config/webpack/shared.js. By default, this list is auto-generated to match everything in
   # app/javascript/packs/*.js. In production mode, the digested reference is automatically looked up.
   #
@@ -21,7 +45,7 @@ module Webpacker::Helper
     javascript_include_tag(*sources_from_pack_manifest(names, type: :javascript), **options)
   end
 
-  # Creates a link tag that references the named pack file, as compiled by Webpack per the entries list
+  # Creates a link tag that references the named pack file, as compiled by webpack per the entries list
   # in config/webpack/shared.js. By default, this list is auto-generated to match everything in
   # app/javascript/packs/*.js. In production mode, the digested reference is automatically looked up.
   #
@@ -44,8 +68,12 @@ module Webpacker::Helper
   end
 
   private
+    def stylesheet?(name)
+      File.extname(name) == ".css"
+    end
+
     def sources_from_pack_manifest(names, type:)
-      names.map { |name| Webpacker.manifest.lookup(pack_name_with_extension(name, type: type)) }
+      names.map { |name| Webpacker.manifest.lookup!(pack_name_with_extension(name, type: type)) }
     end
 
     def pack_name_with_extension(name, type:)

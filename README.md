@@ -5,9 +5,9 @@
 [![Gem](https://img.shields.io/gem/v/webpacker.svg)](https://github.com/rails/webpacker)
 
 Webpacker makes it easy to use the JavaScript pre-processor and bundler
-[Webpack 3.x.x+](https://webpack.js.org/)
+[webpack 3.x.x+](https://webpack.js.org/)
 to manage application-like JavaScript in Rails. It coexists with the asset pipeline,
-as the primary purpose for Webpack is app-like JavaScript, not images, CSS, or
+as the primary purpose for webpack is app-like JavaScript, not images, CSS, or
 even JavaScript Sprinkles (that all continues to live in app/assets).
 
 However, it is possible to use Webpacker for CSS, images and fonts assets as well,
@@ -20,15 +20,19 @@ in which case you may not even need the asset pipeline. This is mostly relevant 
 - [Prerequisites](#prerequisites)
 - [Features](#features)
 - [Installation](#installation)
-  - [Upgrading](#upgrading)
   - [Usage](#usage)
   - [Development](#development)
-  - [Webpack configuration](#webpack-configuration)
+  - [webpack configuration](#webpack-configuration)
+  - [Upgrading](#upgrading)
+  - [Yarn Integrity](#yarn-integrity)
 - [Integrations](#integrations)
   - [React](#react)
   - [Angular with TypeScript](#angular-with-typescript)
   - [Vue](#vue)
   - [Elm](#elm)
+  - [Stimulus](#stimulus)
+  - [Coffeescript](#coffeescript)
+  - [Erb](#erb)
 - [Paths](#paths)
   - [Resolved](#resolved)
   - [Watched](#watched)
@@ -49,10 +53,10 @@ in which case you may not even need the asset pipeline. This is mostly relevant 
 
 ## Features
 
-* [Webpack 3.x.x](https://webpack.js.org/)
+* [webpack 3.x.x](https://webpack.js.org/)
 * ES6 with [babel](https://babeljs.io/)
 * Automatic code splitting using multiple entry points
-* Stylesheets - SASS and CSS
+* Stylesheets - Sass and CSS
 * Images and fonts
 * PostCSS - Auto-Prefixer
 * Asset compression, source-maps, and minification
@@ -76,13 +80,13 @@ Or add it to your `Gemfile`:
 
 ```ruby
 # Gemfile
-gem 'webpacker', '~> 3.0'
+gem 'webpacker', '~> 3.2'
 
 # OR if you prefer to use master
 gem 'webpacker', git: 'https://github.com/rails/webpacker.git'
 ```
 
-and finally, run following to install webpacker:
+Finally, run following to install Webpacker:
 
 ```bash
 bundle
@@ -95,7 +99,7 @@ bundle exec rake webpacker:install
 
 ### Usage
 
-Once installed you can start writing modern ES6-flavored JavaScript app today:
+Once installed, you can start writing modern ES6-flavored JavaScript apps right away:
 
 ```yml
 app/javascript:
@@ -108,8 +112,8 @@ app/javascript:
       └── logo.svg
 ```
 
-You can then link the javascript pack in Rails view using `javascript_pack_tag` helper.
-If you have styles imported in your pack file, you can link using `stylesheet_pack_tag`:
+You can then link the JavaScript pack in Rails views using the `javascript_pack_tag` helper.
+If you have styles imported in your pack file, you can link them by using `stylesheet_pack_tag`:
 
 ```erb
 <%= javascript_pack_tag 'application' %>
@@ -117,7 +121,7 @@ If you have styles imported in your pack file, you can link using `stylesheet_pa
 ```
 
 If you want to link a static asset for `<link rel="prefetch">` or `<img />` tag, you
-can use `asset_pack_path` helper:
+can use the `asset_pack_path` helper:
 
 ```erb
 <link rel="prefetch" href="<%= asset_pack_path 'application.css' %>" />
@@ -132,16 +136,16 @@ you would need to link them in your "pack" or entry file.
 
 Webpacker ships with two binstubs: `./bin/webpack` and `./bin/webpack-dev-server`.
 Both are thin wrappers around the standard `webpack.js` and `webpack-dev-server.js`
-executable to ensure that the right configuration file and environment variables
-are loaded depending on your environment.
+executables to ensure that the right configuration files and environmental variables
+are loaded based on your environment.
 
 In development, Webpacker compiles on demand rather than upfront by default. This
 happens when you refer to any of the pack assets using the Webpacker helper methods.
-That means you don't have to run any separate process. Compilation errors are logged
+This means that you don't have to run any separate processes. Compilation errors are logged
 to the standard Rails log.
 
-If you want to use live code reloading, or you have enough JavaScript that on-demand compilation is too slow, you'll need to run `./bin/webpack-dev-server` or `ruby ./bin/webpack-dev-server` if on windows,
-in a separate terminal from `bundle exec rails s`. This process will watch for changes
+If you want to use live code reloading, or you have enough JavaScript that on-demand compilation is too slow, you'll need to run `./bin/webpack-dev-server` or `ruby ./bin/webpack-dev-server`. Windows users will need to run these commands
+in a terminal separate from `bundle exec rails s`. This process will watch for changes
 in the `app/javascript/packs/*.js` files and automatically reload the browser to match.
 
 ```bash
@@ -156,39 +160,65 @@ in the `app/javascript/packs/*.js` files and automatically reload the browser to
 ```
 
 Once you start this development server, Webpacker will automatically start proxying all
-webpack asset requests to this server. When you stop the server, it'll revert to
-on-demand compilation again.
+webpack asset requests to this server. When you stop the server, it'll revert back to
+on-demand compilation.
 
-You can also pass CLI options supported by [webpack-dev-server](https://webpack.js.org/configuration/dev-server/). Please note that inline options will always take
-precedence over the ones already set in the configuration file.
-
-```bash
-./bin/webpack-dev-server --host example.com --inline true --hot false
-```
-
-By default, webpack dev server listens on `localhost` in development for security
-but if you want your app to be available over local LAN IP or VM instance like vagrant
-you can pass an additional config option `--listen-host`
-when running `./bin/webpack-dev-server` binstub:
+You can use environment variables as options supported by
+[webpack-dev-server](https://webpack.js.org/configuration/dev-server/) in the
+form `WEBPACKER_DEV_SERVER_<OPTION>`. Please note that these environmental
+variables will always take precedence over the ones already set in the
+configuration file, and that the _same_ environmental variables must
+be available to the `rails server` process.
 
 ```bash
-./bin/webpack-dev-server --listen-host 0.0.0.0
+WEBPACKER_DEV_SERVER_HOST=example.com WEBPACKER_DEV_SERVER_INLINE=true WEBPACKER_DEV_SERVER_HOT=false ./bin/webpack-dev-server
 ```
 
-**Note:** Don't forget to prefix `ruby` when running these binstubs on windows
+By default, the webpack dev server listens on `localhost` in development for security purposes.
+However, if you want your app to be available over local LAN IP or a VM instance like vagrant,
+you can set the `host` when running `./bin/webpack-dev-server` binstub:
 
-### Webpack configuration
+```bash
+WEBPACKER_DEV_SERVER_HOST=0.0.0.0 ./bin/webpack-dev-server
+```
 
-See [docs/Webpack](docs/webpack.md) for modifying webpack configuration and loaders.
+**Note:** You need to allow webpack-dev-server host as an allowed origin for `connect-src` if you are running your application in a restrict CSP environment (like Rails 5.2+). This can be done in Rails 5.2+ in the CSP initializer `config/initializers/content_security_policy.rb` with a snippet like this:
+
+```ruby
+  p.connect_src :self, :https, 'http://localhost:3035', 'ws://localhost:3035' if Rails.env.development?
+```
+
+**Note:** Don't forget to prefix `ruby` when running these binstubs on Windows
+
+### webpack configuration
+
+See [docs/webpack](docs/webpack.md) for modifying webpack configuration and loaders.
 
 
 ### Upgrading
 
-You can run following commands to upgrade webpacker to the latest stable version, this involves upgrading the gem and npm module:
+You can run following commands to upgrade Webpacker to the latest stable version. This process involves upgrading the gem and related npm modules:
 
 ```bash
 bundle update webpacker
 yarn upgrade @rails/webpacker --latest
+yarn upgrade webpack-dev-server --latest
+```
+
+### Yarn Integrity
+
+By default, in development, webpacker runs a yarn integrity check to ensure that all local npm packages are up-to-date. This is similar to what bundler does currently in Rails, but for JavaScript packages. If your system is out of date, then Rails will not initialize. You will be asked to upgrade your local npm packages by running `yarn install`.
+
+To turn off this option, you will need to override the default by adding a new config option to your Rails development environment configuration file (`config/environment/development.rb`):
+
+```
+config.webpacker.check_yarn_integrity = false
+```
+
+You may also turn on this feature by adding the config option to any Rails environment configuration file:
+
+```
+config.webpacker.check_yarn_integrity = true
 ```
 
 ## Integrations
@@ -207,10 +237,10 @@ rails new myapp --webpack=react
 ```
 
 (or run `bundle exec rails webpacker:install:react` in a existing Rails app already
-setup with webpacker).
+setup with Webpacker).
 
-The installer will add all relevant dependencies using yarn, any changes
-to the configuration files and an example React component to your
+The installer will add all relevant dependencies using Yarn, changes
+to the configuration files, and an example React component to your
 project in `app/javascript/packs` so that you can experiment with React right away.
 
 
@@ -225,12 +255,29 @@ rails new myapp --webpack=angular
 ```
 
 (or run `bundle exec rails webpacker:install:angular` on a Rails app already
-setup with webpacker).
+setup with Webpacker).
 
-The installer will add TypeScript and Angular core libraries using yarn plus
-any changes to the configuration files. An example component is written in
+The installer will add the TypeScript and Angular core libraries using Yarn alongside
+a few changes to the configuration files. An example component written in
 TypeScript will also be added to your project in `app/javascript` so that
 you can experiment with Angular right away.
+
+By default, Angular uses a JIT compiler for development environment. This
+compiler is not compatible with restrictive CSP (Content Security
+Policy) environments like Rails 5.2+. You can use Angular AOT compiler
+in development with the [@ngtools/webpack](https://www.npmjs.com/package/@ngtools/webpack#usage) plugin.
+
+Alternatively if you're using Rails 5.2+ you can enable `unsafe-eval` rule for your
+development environment. This can be done in the `config/initializers/content_security_policy.rb`
+with the following code:
+
+```ruby
+  if Rails.env.development?
+    p.script_src :self, :https, :unsafe_eval
+  else
+    p.script_src :self, :https
+  end
+```
 
 
 ### Vue
@@ -242,12 +289,24 @@ new Rails 5.1+ app using `--webpack=vue` option:
 # Rails 5.1+
 rails new myapp --webpack=vue
 ```
-(or run `bundle exec rails webpacker:install:vue` on a Rails app already setup with webpacker).
+(or run `bundle exec rails webpacker:install:vue` on a Rails app already setup with Webpacker).
 
-The installer will add Vue and required libraries using yarn plus
-any changes to the configuration files. An example component will
-also be added to your project in `app/javascript` so that you can
-experiment Vue right away.
+The installer will add Vue and its required libraries using Yarn alongside
+automatically applying changes needed to the configuration files. An example component will
+be added to your project in `app/javascript` so that you can experiment with Vue right away.
+
+If you're using Rails 5.2+ you'll need to enable `unsafe-eval` rule for your development environment.
+This can be done in the `config/initializers/content_security_policy.rb` with the following
+configuration:
+
+```ruby
+  if Rails.env.development?
+    p.script_src :self, :https, :unsafe_eval
+  else
+    p.script_src :self, :https
+  end
+```
+You can read more about this in the [Vue docs](https://vuejs.org/v2/guide/installation.html#CSP-environments).
 
 
 ### Elm
@@ -260,24 +319,57 @@ new Rails 5.1+ app using `--webpack=elm` option:
 rails new myapp --webpack=elm
 ```
 
-(or run `bundle exec rails webpacker:install:elm` on a Rails app already setup with webpacker).
+(or run `bundle exec rails webpacker:install:elm` on a Rails app already setup with Webpacker).
 
-The Elm library and core packages will be added via Yarn and Elm itself.
+The Elm library and its core packages will be added via Yarn and Elm.
 An example `Main.elm` app will also be added to your project in `app/javascript`
 so that you can experiment with Elm right away.
+
+### Stimulus
+
+To use Webpacker with [Stimulus](http://stimulusjs.org), create a
+new Rails 5.1+ app using `--webpack=stimulus` option:
+
+```
+# Rails 5.1+
+rails new myapp --webpack=stimulus
+```
+
+(or run `bundle exec rails webpacker:install:stimulus` on a Rails app already setup with Webpacker).
+
+Please read [The Stimulus Handbook](https://stimulusjs.org/handbook/introduction) or learn more about its source code at https://github.com/stimulusjs/stimulus
+
+### Coffeescript
+
+To add [Coffeescript](http://coffeescript.org/) support,
+run `bundle exec rails webpacker:install:coffee` on a Rails app already
+setup with Webpacker.
+
+An example `hello_coffee.coffee` file will also be added to your project
+in `app/javascript/packs` so that you can experiment with Coffeescript right away.
+
+### Erb
+
+To add [Erb](https://apidock.com/ruby/ERB) support in your JS templates,
+run `bundle exec rails webpacker:install:erb` on a Rails app already
+setup with Webpacker.
+
+An example `hello_erb.js.erb` file will also be added to your project
+in `app/javascript/packs` so that you can experiment with Erb-flavoured
+javascript right away.
 
 
 ## Paths
 
-By default, webpacker ships with simple conventions for where the javascript
-app files and compiled webpack bundles will go in your rails app,
-but all these options are configurable from `config/webpacker.yml` file.
+By default, Webpacker ships with simple conventions for where the JavaScript
+app files and compiled webpack bundles will go in your Rails app.
+All these options are configurable from `config/webpacker.yml` file.
 
-The configuration for what Webpack is supposed to compile by default rests
+The configuration for what webpack is supposed to compile by default rests
 on the convention that every file in `app/javascript/packs/*`**(default)**
 or whatever path you set for `source_entry_path` in the `webpacker.yml` configuration
-is turned into their own output files (or entry points, as Webpack calls it). Therefore you don't want to put anything inside `packs` directory that you do want to be
-an entry file. As a rule thumb, put all files your want to link in your views inside
+is turned into their own output files (or entry points, as webpack calls it). Therefore you don't want to put anything inside `packs` directory that you do not want to be
+an entry file. As a rule of thumb, put all files you want to link in your views inside
 "packs" directory and keep everything else under `app/javascript`.
 
 Suppose you want to change the source directory from `app/javascript`
@@ -305,17 +397,17 @@ If you have `hmr` turned to true, then the `stylesheet_pack_tag` generates no ou
 
 ### Resolved
 
-If you are adding webpacker to an existing app that has most of the assets inside
-`app/assets` or inside an engine and you want to share that
-with webpack modules then you can use `resolved_paths`
-option available in `config/webpacker.yml`, which lets you
-add additional paths webpack should lookup when resolving modules:
+If you are adding Webpacker to an existing app that has most of the assets inside
+`app/assets` or inside an engine, and you want to share that
+with webpack modules, you can use the `resolved_paths`
+option available in `config/webpacker.yml`. This lets you
+add additional paths that webpack should lookup when resolving modules:
 
 ```yml
 resolved_paths: ['app/assets']
 ```
 
-You can then import them inside your modules like so:
+You can then import these items inside your modules like so:
 
 ```js
 // Note it's relative to parent directory i.e. app/assets
@@ -330,9 +422,9 @@ whole parent directory if you just need to reference one or two modules
 
 ### Watched
 
-By default, the lazy compilation is cached until a file is changed under
-tracked paths. You can configure the paths tracked
-by adding new paths to `watched_paths` array, much like rails `autoload_paths`:
+By default, the lazy compilation is cached until a file is changed under your
+tracked paths. You can configure which paths are tracked
+by adding new paths to `watched_paths` array. This is much like Rails' `autoload_paths`:
 
 ```rb
 # config/initializers/webpacker.rb
@@ -343,10 +435,7 @@ Webpacker::Compiler.watched_paths << 'bower_components'
 
 ## Deployment
 
-Webpacker hooks up a new `webpacker:compile` task to `assets:precompile`, which gets run whenever you run `assets:precompile`. If you are not using sprockets you
-can manually trigger `NODE_ENV=production bundle exec rails webpacker:compile`
-during your app deploy.
-
+Webpacker hooks up a new `webpacker:compile` task to `assets:precompile`, which gets run whenever you run `assets:precompile`. If you are not using Sprockets, `webpacker:compile` is automatically aliased to `assets:precompile`. Remember to set NODE_ENV environment variable to production during deployment or when running this rake task.
 
 ## Docs
 
